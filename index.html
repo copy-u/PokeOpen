@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Pokémon TCG Simulator</title>
+  <title>Pokémon TCG Pack Simulator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
@@ -110,7 +110,7 @@
 <body>
   <header>
     <h1>Pokémon TCG Pack Simulator</h1>
-    <p>Real cards • Real images • Real prices • Simple & clean</p>
+    <p>Real images • Real prices • Simple & clean</p>
   </header>
 
   <div class="container">
@@ -126,9 +126,8 @@
       <h2>Select a Pack</h2>
       <div class="pack-select">
         <div class="pack-btn" onclick="openPack('base')">Base Set</div>
-        <div class="pack-btn" onclick="openPack('jungle')">Jungle</div>
-        <div class="pack-btn" onclick="openPack('fossil')">Fossil</div>
-        <div class="pack-btn" onclick="openPack('sv')">Scarlet & Violet</div>
+        <div class="pack-btn" onclick="openPack('crown')">Crown Zenith</div>
+        <div class="pack-btn" onclick="openPack('ascended')">Ascended Heroes</div>
       </div>
     </div>
 
@@ -146,6 +145,200 @@
 
   </div>
 
-  <script src="script.js"></script>
+<script>
+// -------------------------------
+// PLAYER STATE
+// -------------------------------
+let money = 300;
+let dailyClaimed = false;
+let shinyBoost = 0;
+let godMode = false;
+
+function updateMoney() {
+  document.getElementById("money").innerText = `$${money.toFixed(2)}`;
+}
+
+function claimDaily() {
+  if (dailyClaimed) return alert("Already claimed today.");
+  money += 50;
+  dailyClaimed = true;
+  updateMoney();
+  alert("Daily reward claimed! +$50");
+}
+
+// -------------------------------
+// SECRET CODES
+// -------------------------------
+function checkSecret(e) {
+  if (e.key !== "Enter") return;
+  const code = document.getElementById("secret").value.trim();
+
+  if (code === "nofunnomore") {
+    money = 999999999;
+    updateMoney();
+    alert("Infinite money unlocked.");
+  } else if (code === "OSAi-PIX") {
+    alert("Developer Mode enabled.");
+  } else if (code === "SHINYRAIN") {
+    shinyBoost = 10;
+    alert("Shiny/Holo guaranteed for next 10 packs!");
+  } else if (code === "TIMEWARP") {
+    dailyClaimed = false;
+    alert("Daily reward reset.");
+  } else if (code === "GODHAND") {
+    godMode = true;
+    alert("Perfect luck for 5 minutes!");
+    setTimeout(() => godMode = false, 5 * 60 * 1000);
+  } else {
+    alert("Invalid code.");
+  }
+
+  document.getElementById("secret").value = "";
+}
+
+// -------------------------------
+// CARD DATA
+// -------------------------------
+const sets = {
+  base: {
+    name: "Base Set",
+    price: 4,
+    cards: [
+      {
+        name: "Charizard",
+        rarity: "Holo Rare",
+        price: 350,
+        img: "https://pkmncards.com/wp-content/uploads/base-set-charizard-base-set-4.jpg"
+      },
+      {
+        name: "Blastoise",
+        rarity: "Holo Rare",
+        price: 120,
+        img: "https://pkmncards.com/wp-content/uploads/base-set-blastoise-base-set-2.jpg"
+      },
+      {
+        name: "Pikachu",
+        rarity: "Common",
+        price: 3,
+        img: "https://pkmncards.com/wp-content/uploads/base-set-pikachu-base-set-58.jpg"
+      }
+    ]
+  },
+
+  crown: {
+    name: "Crown Zenith",
+    price: 5,
+    cards: [
+      {
+        name: "Raikou V",
+        rarity: "Ultra Rare",
+        price: 5.5,
+        img: "https://pkmncards.com/wp-content/uploads/swsh12pt5-048-raikou-v.jpg"
+      },
+      {
+        name: "Zacian VSTAR",
+        rarity: "Ultra Rare",
+        price: 3,
+        img: "https://pkmncards.com/wp-content/uploads/swsh12pt5-095-zacian-vstar.jpg"
+      }
+    ]
+  },
+
+  ascended: {
+    name: "Ascended Heroes",
+    price: 4.5,
+    cards: [
+      {
+        name: "Flame Dragon EX",
+        rarity: "Ultra Rare",
+        price: 15,
+        img: "https://images.pexels.com/photos/2820895/pexels-photo-2820895.jpeg"
+      },
+      {
+        name: "Forest Guardian",
+        rarity: "Holo Rare",
+        price: 6,
+        img: "https://images.pexels.com/photos/15286/pexels-photo.jpg"
+      }
+    ]
+  }
+};
+
+// -------------------------------
+// RARITY WEIGHTS
+// -------------------------------
+const rarityWeights = {
+  "Common": 60,
+  "Uncommon": 25,
+  "Rare": 10,
+  "Holo Rare": 4,
+  "Ultra Rare": 1,
+  "Secret Rare": 0.5
+};
+
+// -------------------------------
+// PACK OPENING
+// -------------------------------
+function openPack(key) {
+  const set = sets[key];
+  if (!set) return alert("Unknown set.");
+
+  if (money < set.price) return alert("Not enough money.");
+  money -= set.price;
+  updateMoney();
+
+  const cardsDiv = document.getElementById("cards");
+  cardsDiv.innerHTML = "";
+
+  const pulled = [];
+
+  for (let i = 0; i < 10; i++) {
+    const card = pickCard(set.cards);
+    pulled.push(card);
+    renderCard(card, cardsDiv);
+  }
+
+  const total = pulled.reduce((s, c) => s + c.price, 0);
+  alert(`Opened ${set.name}! Value: $${total.toFixed(2)}`);
+}
+
+function pickCard(cards) {
+  if (godMode || shinyBoost > 0) {
+    const shiny = cards.filter(c =>
+      c.rarity.includes("Holo") ||
+      c.rarity.includes("Ultra") ||
+      c.rarity.includes("Secret")
+    );
+    if (shiny.length > 0) {
+      if (shinyBoost > 0) shinyBoost--;
+      return shiny[Math.floor(Math.random() * shiny.length)];
+    }
+  }
+
+  const pool = [];
+  for (const c of cards) {
+    const w = rarityWeights[c.rarity] || 1;
+    for (let i = 0; i < w; i++) pool.push(c);
+  }
+
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function renderCard(card, container) {
+  const div = document.createElement("div");
+  div.className = "card";
+
+  const img = document.createElement("img");
+  img.src = card.img;
+  img.alt = card.name;
+
+  div.title = `${card.name}\n${card.rarity}\n$${card.price}`;
+  div.appendChild(img);
+  container.appendChild(div);
+}
+
+updateMoney();
+</script>
+
 </body>
 </html>
